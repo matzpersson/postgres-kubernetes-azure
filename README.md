@@ -1,10 +1,8 @@
 # PostgreSQL in Kubernetes Cluster on Azure
-Creating a auto-healing and load scaling Kubernetes cluster on Azure. Starts with creating the Azure cluster through to deploying the database.
-
-
+Basic steps for creating a Kubernetes cluster on Azure and deploying latest Postgres database ontop using persistent storage to ensure data is not lost if the single Postgres primary pod falls over.
 
 ## Creating the cluster
-There are various pages of instruction for creating a cluster in Azure. This is one of them: https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough but these are the basic steps to create the cluster. This assumes that you have created a Azure accoun, have a login to the Azure Portal and have the Azure `az` client command line tools installed.
+There are various pages of instruction for creating a cluster in Azure. This is one of them: https://docs.microsoft.com/en-us/azure/aks/kubernetes-walkthrough but these are the basic steps to create the cluster. This assumes that you have created a Azure account, have a login to the Azure Portal, have the Azure `az` client command line tools installed and psql client tool to access the database.
 
 Start with creating the Resource Group. Adjust the region to suit your location:
 
@@ -21,7 +19,7 @@ az aks create \
 ```
 
 ## Connect to the cluster
-We used `kubectl` to manage this cluster. If you have already installed `kubectl`, you can ignore next command:
+I used `kubectl` to manage this cluster. If you have already installed `kubectl`, you can ignore next command:
 
 ```az aks install-cli```
 
@@ -36,33 +34,51 @@ aks-nodepool1-31718369-0   Ready    agent   6m44s   v1.12.8
 ```
 
 ## Postgres YAML files
-You will find all the yaml files you will need in this repo. There are better ways to store your credentials than in the YAML. We added them in here just for the sake of simplicity in this demo. These should go into environment variables and configured as part of your CI/CD pipelines:
+You will find all the yaml files you will need in this repo. . We added them in here just for the sake of simplicity in this demo:
 
-* `postgres-configmap.yaml` - Configuration for Postgres database details which you can use to connect to the Pgsql database later.
-* `postgres-storage.yaml` - This creates a Persistent shared storage on Azure which the pods in the Postgres cluster will use as a shared storage.
-* `postgres-stateful.yaml` - Pulls it all together using Kubernetes Stateful sets. It has 3 replicas initially but will continue to scale the replicas up to a max of 10 replicas. This file also references the other yaml files.
-* `postgres-service.yaml` - Creates a load balancer that works with the Kubernetes Master to distribute load to underlying pods. This creates a public ip which would not be ideal in a production environment as you would probably want to use a ClusterIP or NodeIp that is not exposed to the public... but for playing around with from your workstation, this is simpler.
+* `psql-config.yaml` - Configuration for Postgres database details which you can use to connect to the Pgsql database.
+* `psql-secret.yaml` -  Stores and manage sensitive information. Password in there have been base64 encoded with ```echo "test" | base64
+* `psql-stateful.yaml` - Pulls it all together using Kubernetes Stateful sets. It has a single pod as postgres can only have single pod writing to its datastore at any one time. Might feel like that then makes it pointless to put this in Kubernetes cluster but if a pod crashes because the storage in this installation is persistent, the pod will recover very quickl and connect to the existing storage volume.
+* `psql-service.yaml` - Creates the access service with a NodePort access point rather than a external ip (LoadBalancer type). More on how to access this further down.
 
 ## Deploy the YAML files
-Assuming you have pulled this repo down locally, following are the steps for completing the installation:
+Assuming you have pulled this repo down locally, following are the steps for completing the installation. You can reapply these any number of times to update settings in the YAML files:
 ```
-kubectl create -f postgres-configmap.yaml
-kubectl create -f postgres-storage.yaml
-kubectl create -f postgres-stateful.yaml
-kubectl create -f postgres-service.yaml
+kubectl apply -f ./psql-config.yaml 
+kubectl apply -f ./psql-secret.yaml 
+kubectl apply -f ./psql-stateful.yaml 
+kubectl apply -f ./psql-service.yaml 
 ```
 
-Watch the pod creation with:
+This will create the configuration/secre YAML's, start pulling down the Postgres image and create the persistent storage volume. Use get and describe to watch the pod creation:
 ```
 kubectl get pods
+
+NAME          READY   STATUS    RESTARTS   AGE
+pg-single-0   1/1     Running   0          42m
 ```
 
-Get the Service status and public ip with:
+The Statefulset will propably takes the longest to create depending on the size of the volume defined in psql-stateful.yaml. Watch progress with:
+```
+kubectl get statefulset
+```
+
+Get the Service status and NodeIP with:
 ```
 kubectl get svc postgres
+
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+pg-single    NodePort    10.0.102.104   <none>        5432:31295/TCP   40m
 ```
 
-Once the public ip is created, you should be able to connect to the database instance with command-line `psql` or something like the PgAdmin gui interface.
+To connect to this instance with something like `psql`, you need to do a port forward which will then enable you to connect to the postgres instances from your local dev machine. Use the NAME in the `kubectl get pods` to create a port-forward. A reasonably secure way to connect to the remote database instance:
+```
+kubectl port-forward pod/pg-single-0 5432:5432
+```
 
-The guys at SeveralNines have a very helpful page with more detail on: https://severalnines.com/blog/using-kubernetes-deploy-postgresql
+At this stage you are ready to connect to the db as if it was on your localhost:
+```
+psql -h localhost -U postgres
+```
 
+You can also enable a external IP to the above service. Just change the Type in psql-service.yaml from NodePort to LoadBalancer.

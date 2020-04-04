@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pg-single-configmap
+  labels:
+    app: pg-single
+data:
+  POSTGRES_DB: pg-single
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: test
+  
