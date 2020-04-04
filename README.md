@@ -42,7 +42,7 @@ You will find all the yaml files you will need in this repo. . We added them in 
 
 * `psql-config.yaml` - Configuration for Postgres database details which you can use to connect to the Pgsql database.
 * `psql-secret.yaml` -  Stores and manage sensitive information. Password in there have been base64 encoded.
-* `psql-stateful.yaml` - Pulls it all together using Kubernetes Stateful sets. It has a single pod as postgres can only have single pod writing to its datastore at any one time. Might feel like that then makes it pointless to put this in Kubernetes cluster but if a pod crashes because the storage in this installation is persistent, the pod will recover very quickl and connect to the existing storage volume.
+* `psql-stateful.yaml` - Pulls it all together using Kubernetes Stateful sets.
 * `psql-service.yaml` - Creates the access service with a NodePort access point rather than a external ip (LoadBalancer type). More on how to access this further down.
 
 ## Deploy the YAML files
@@ -85,6 +85,9 @@ At this stage you should be able to connect to the db as if it was on your local
 psql -h localhost -U postgres
 ```
 
+## Summary
 You can also enable a external IP to the above service which exposes the db instance to the then internet. Less ideal security wise but if you scenario demands it, just change the Type in psql-service.yaml from NodePort to LoadBalancer.
+
+Statefulset has a single pod only as postgres can only have single primary writing to its datastore at any one time. Might feel like that makes it pointless to put this in Kubernetes cluster but if a pod crashes and because the storage in this installation is persistent, the pod will recover very quickly and connect to the existing storage volume. If the underlying node is unavailable, it will create a new pod in second node connected to the existing storage.
 
 Naturally, you should be running more than this single pod Postgres instance in the cluster so you can utilise more than just a single pod on a single node. You could fire up some replicas in the same cluster as a seperate set of pods and offload read-only queries and ofcourse, put your websites in this same cluster with multiple pods as a seperate deployment.
