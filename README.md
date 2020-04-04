@@ -89,5 +89,3 @@ psql -h localhost -U postgres
 You can also enable a external IP to the above service which exposes the db instance to the then internet. Less ideal security wise but if you scenario demands it, just change the Type in psql-service.yaml from NodePort to LoadBalancer.
 
 Statefulset has a single pod only as postgres can only have single primary writing to its datastore at any one time. Might feel like that makes it pointless to put this in Kubernetes cluster but if a pod crashes and because the storage in this installation is persistent, the pod will recover very quickly and connect to the existing storage volume. If the underlying node is unavailable, it will create a new pod in second node connected to the existing storage.
-
-Naturally, you should be running more than this single pod Postgres instance in the cluster so you can utilise more than just a single pod on a single node. You could fire up some replicas in the same cluster as a seperate set of pods and offload read-only queries and ofcourse, put your websites in this same cluster with multiple pods as a seperate deployment.
