@@ -37,7 +37,7 @@ aks-nodepool1-31718369-0   Ready    agent   6m44s   v1.12.8
 You will find all the yaml files you will need in this repo. . We added them in here just for the sake of simplicity in this demo:
 
 * `psql-config.yaml` - Configuration for Postgres database details which you can use to connect to the Pgsql database.
-* `psql-secret.yaml` -  Stores and manage sensitive information. Password in there have been base64 encoded with ```echo "test" | base64
+* `psql-secret.yaml` -  Stores and manage sensitive information. Password in there have been base64 encoded with `echo "test" | base64`
 * `psql-stateful.yaml` - Pulls it all together using Kubernetes Stateful sets. It has a single pod as postgres can only have single pod writing to its datastore at any one time. Might feel like that then makes it pointless to put this in Kubernetes cluster but if a pod crashes because the storage in this installation is persistent, the pod will recover very quickl and connect to the existing storage volume.
 * `psql-service.yaml` - Creates the access service with a NodePort access point rather than a external ip (LoadBalancer type). More on how to access this further down.
 
