@@ -86,7 +86,7 @@ psql -h localhost -U postgres
 ```
 
 ## Resize the Volume Claim
-As Kubernetes does not allow changes to volume size after a statefulset has first been applied, you need to edit the pvc after it has been created. Use this command to get the name of the Persistent Volume Claim:
+As Kubernetes does not allow changes to volume size of the volumeClaimTemplate after a statefulset has first been applied, you need to edit the pvc after it has been created. Use this command to get the name of the Persistent Volume Claim:
 
 ```
 kubectl get pvc
