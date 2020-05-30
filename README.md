@@ -85,6 +85,19 @@ At this stage you should be able to connect to the db as if it was on your local
 psql -h localhost -U postgres
 ```
 
+## Resize the Volume Claim
+As Kubernetes does not allow changes to volume size after a statefulset has first been applied, you need to edit the pvc after it has been created. Use this command to get the name of the Persistent Volume Claim:
+
+```
+kubectl get pvc
+```
+.. and then edit the pvc:
+
+```
+kubectl edit pvc pg-single-claim
+```
+... and increase the storage size under spec.resources.requests. You may need to kill the Postgres pod to reclaim the new storage size.
+
 ## Summary
 You can also enable a external IP to the above service which exposes the db instance to the then internet. Less ideal security wise but if you scenario demands it, just change the Type in psql-service.yaml from NodePort to LoadBalancer.
 
